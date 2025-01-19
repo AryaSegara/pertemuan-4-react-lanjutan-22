@@ -3,7 +3,6 @@ import cors from "cors";
 import connection from "./database.js";
 import jwt from "jsonwebtoken";
 
-
 import { verifyToken } from "./middleware/auth.js";
 
 const app =  express();
@@ -65,11 +64,10 @@ app.get('/api/profile', verifyToken, async (req, res) => {
         const { username } = req.user;
 
         // Query database untuk mendapatkan gmail dan username
-        const result = await connection.query('SELECT gmail, username FROM users WHERE username = $1', [username]);
+      const result = await connection.query('SELECT gmail, username FROM users WHERE username = $1', [username]);
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'User tidak ditemukan!' });
         }
-
         // Kirim response dengan data user
         res.json({
             message: 'Access granted!',

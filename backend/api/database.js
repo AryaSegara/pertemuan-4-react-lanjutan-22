@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 
 // Memuat file .env
 dotenv.config();
-
 const { Pool } = pg;
 
 // Menggunakan variabel dari .env
@@ -16,7 +15,6 @@ const connection = new Pool({
 });
 
 console.log("Connected ke database berhasil");
-
 export default connection;
 
 
