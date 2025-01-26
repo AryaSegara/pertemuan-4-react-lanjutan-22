@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import Cookies from 'js-cookie'; // Import js-cookie
 
 const App = () => {
   const [users, setUsers] = useState([]);
   const [gmail, setGmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [token, setToken] = useState(localStorage.getItem('token') || '');
+  const [token, setToken] = useState(Cookies.get('token') || ''); // Ambil token dari cookie
   const [profile, setProfile] = useState(null);
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
 
+  // Fetch all users on mount
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -22,21 +24,21 @@ const App = () => {
       setUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
+      alert('Failed to fetch users.');
     }
   };
 
   // Register new user
   const registerUser = async (e) => {
     e.preventDefault();
+    if (!gmail || !username || !password) {
+      alert('All fields are required for registration.');
+      return;
+    }
     try {
       await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/api/register`,
-        { gmail, username, password },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+        { gmail, username, password }
       );
       alert('Registration successful!');
       setGmail('');
@@ -45,48 +47,58 @@ const App = () => {
       setShowRegister(false);
     } catch (error) {
       console.error('Error registering user:', error);
-      alert('Registration failed.');
+      alert('Registration failed. Please try again.');
     }
   };
 
   // Login user
   const loginUser = async (e) => {
     e.preventDefault();
+    if (!username || !password) {
+      alert('Both username and password are required for login.');
+      return;
+    }
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/api/login`,
-        { username, password },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+        { username, password }
       );
       const userToken = response.data.token;
+      Cookies.set('token', userToken, { expires: 3 }); 
       setToken(userToken);
-      localStorage.setItem('token', userToken);
       alert('Login successful!');
       setShowLogin(false);
     } catch (error) {
       console.error('Error logging in:', error);
-      alert('Login failed.');
+      alert('Login failed. Please check your credentials.');
     }
   };
 
   // Logout user
-  const logoutUser = () => {
-    setToken('');
-    localStorage.removeItem('token');
-    setProfile(null);
-    alert('Logged out successfully.');
+  const logoutUser = async () => {
+    try {
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/logout`, {}, {
+        headers: { Authorization: `Bearer ${token}` }, // Kirimkan token di header Authorization
+      });
+      Cookies.remove('token'); // Remove token from cookie
+      setToken('');
+      setProfile(null);
+      alert('Logged out successfully.');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      alert('Logout failed.');
+    }
   };
 
   // Fetch user profile
   const fetchProfile = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_BASE_URL}/api/profile`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setProfile(response.data.user);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -127,10 +139,7 @@ const App = () => {
 
         {/* Register Form */}
         {showRegister && (
-          <form
-            onSubmit={registerUser}
-            className="flex flex-col items-center gap-4 mb-8"
-          >
+          <form onSubmit={registerUser} className="flex flex-col items-center gap-4 mb-8">
             <h2 className="text-xl font-bold text-blue-500">Register</h2>
             <input
               type="email"
@@ -164,10 +173,7 @@ const App = () => {
 
         {/* Login Form */}
         {showLogin && (
-          <form
-            onSubmit={loginUser}
-            className="flex flex-col items-center gap-4 mb-8"
-          >
+          <form onSubmit={loginUser} className="flex flex-col items-center gap-4 mb-8">
             <h2 className="text-xl font-bold text-green-500">Login</h2>
             <input
               type="text"

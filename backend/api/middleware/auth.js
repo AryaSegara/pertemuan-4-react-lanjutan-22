@@ -1,24 +1,20 @@
 import jwt from "jsonwebtoken";
 
 // Middleware otentikasi
-export const verifyToken = (req,res,next) => {
-    const authorization = req.headers.authorization;
-    if (authorization) {
-      if (authorization.startsWith("Bearer ")) {
-        const token = authorization.split(" ")[1];
-        try {
-          req.user = jwt.verify(token, process.env.SECRET_KEY);
-          next();
-        } catch (error) {
-          res.status(401);
-          res.send("Token tidak valid.");
-        }
-      } else {
-        res.status(401);
-        res.send('Otorisasi tidak valid (harus "Bearer").');
-      }
-    } else {
-      res.status(401);
-      res.send("Anda belum login (tidak ada otorisasi).");
-    }
-  };
+export const verifyToken = (req, res, next) => {
+  // Prioritas pengambilan token: Cookies -> Header Authorization
+  const token = req.cookies.token || (req.headers.authorization?.startsWith("Bearer ") && req.headers.authorization.split(" ")[1]);
+
+  // Cek apakah token ada
+  if (!token) {
+    return res.status(401).json({ message: "Anda belum login (token tidak ditemukan)." });
+  }
+  
+  try {
+    // Verifikasi token
+    req.user = jwt.verify(token, process.env.SECRET_KEY);
+    next(); // Lanjut ke endpoint berikutnya jika token valid
+  } catch (error) {
+    res.status(403).json({ message: "Token tidak valid atau telah kedaluwarsa.", error: error.message });
+  }
+};
